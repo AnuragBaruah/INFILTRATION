@@ -1,0 +1,10 @@
+# This file contains the names of the levels in chronological order
+# Do not manually change this file
+##
+TheOpening
+ZIGZAG
+GetKnife
+DETONATE
+PRIORITIES
+TheCorners
+DirectionSense
