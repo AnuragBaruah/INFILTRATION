@@ -1,26 +1,51 @@
-# Tutorial levels first, followed by 20 main campaign challenges.
-##
-T01_FirstSteps
-T02_ReadThePatrol
-T03_CloseQuarters
-T04_BombSafety
-L01_QuietApproach
-L02_CoverToCover
-L03_TheLongHall
-L04_Crossfire
-L05_TheSupplyCache
-L06_Switchback
-L07_PatrolClock
-L08_ThePillars
-L09_CloseQuarters
-L10_BlastRadius
-L11_ThreeLanes
-L12_TheGauntlet
-L13_DeadDrop
-L14_RedCorridor
-L15_RelayRun
-L16_TheBlindCorner
-L17_SilentExit
-L18_BreachPoint
-L19_LastPatrol
-L20_Extraction
+# Internal id | Mission title
+Move|Move
+Patrol|Patrol
+Knife|Knife
+Bombs|Bombs
+SaltwindCauseway|Saltwind Causeway
+TwinSwitches|Twin Switches
+SluiceGate|Sluice Gate
+AshCourt|Ash Court
+UnderpassRelay|Underpass Relay
+FloodplainLoop|Floodplain Loop
+BlindTurn|Blind Turn
+PaperDistrict|Paper District
+NightDocks|Night Docks
+NarrowGauge|Narrow Gauge
+SplitSignal|Split Signal
+ParcelRun|Parcel Run
+FortBracket|Fort Bracket
+FreightReturn|Freight Return
+PierBlackout|Pier Blackout
+ColdStore|Cold Store
+WatchhouseGauntlet|Watchhouse Gauntlet
+NarrowWorks|Narrow Works
+GlassYard|Glass Yard
+LongNight|Long Night
+LastTrain|Last Train
+SawtoothMile|Sawtooth Mile
+PumpStation|Pump Station
+FreightBraid|Freight Braid
+ThreeCourtyards|Three Courtyards
+FalseShortcut|False Shortcut
+DispatchLoop|Dispatch Loop
+CargoMaze|Cargo Maze
+SplitBasin|Split Basin
+BlindRelay|Blind Relay
+FoundrySpiral|Foundry Spiral
+NorthCrossing|North Crossing
+BrokenYard|Broken Yard
+LongReturn|Long Return
+TwoCharges|Two Charges
+BreachYard|Breach Yard
+Redoubt|Redoubt
+Crosswind|Crosswind
+SilentPier|Silent Pier
+DeadAngle|Dead Angle
+PressureValve|Pressure Valve
+GhostLine|Ghost Line
+NoSafeCenter|No Safe Center
+FinalWindow|Final Window
+LastPlatform|Last Platform
+ExtractionRoute|Extraction Route
