@@ -77,11 +77,18 @@ class Game(object):
         self.mission_pass_channel = pygame.mixer.Channel(2)
         self.player_SFX_attack = pygame.mixer.Channel(3)
 
+        self.level_ids = []
         self.level_names = []
         with open('Levels/Level-Names.txt', 'r') as f:
             for line in f.read().splitlines():
                 if line and not line.startswith('#'):
-                    self.level_names.append(line)
+                    if '|' in line:
+                        level_id, display_name = line.split('|', 1)
+                    else:
+                        # Backward compatibility for pre-title campaign files.
+                        level_id = display_name = line
+                    self.level_ids.append(level_id.strip())
+                    self.level_names.append(display_name.strip())
         self.playing_level_index = 0
         try:
             with open('Max-Level-Unlocked', 'rb'):

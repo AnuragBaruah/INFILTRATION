@@ -1,5 +1,6 @@
 import pickle
 import pygame, game, time
+import scoring
 
 pygame.font.init()
 content_font = pygame.font.Font('normal.ttf', 35)
@@ -31,8 +32,41 @@ def goto_levelselector(menu):
 def back_from_levelselector(menu):
     menu.gameObj.menumode = getattr(menu.gameObj, 'return_menu_mode', 'startup')
 
+def previous_level_page(menu):
+    menu.page = max(0, menu.page - 1)
+    menu._page_needs_rebuild = True
+
+def next_level_page(menu):
+    menu.page = min(menu.page_count - 1, menu.page + 1)
+    menu._page_needs_rebuild = True
+
 def quit_button(menu):
     menu.gameObj.isrunning = False
+
+
+def draw_level_score(screen, result):
+    if not result:
+        return
+    font = pygame.font.Font('normal.ttf', 28)
+    best = result.get('best', {})
+    rows = []
+    if result.get('is_new_record'):
+        rows.append('NEW HIGH SCORE!')
+    rows.extend((
+        f"TIME {scoring.format_time(result['time_seconds'])}     GHOSTS {result['ghosts_killed']}     PATROLS {result['patrols_killed']}",
+        f"HEALTH LOST {result['health_lost']} / {result['starting_health']}     LEFT {result['health_remaining']}",
+        f"SCORE {result['score']:,}    TIME +{result['time_bonus']:,}    COMBAT +{result['combat_bonus']:,}    HEALTH +{result['health_bonus']:,}",
+    ))
+    if best:
+        rows.append(
+            f"BEST {int(best.get('score', 0)):,}  |  {scoring.format_time(best.get('time_seconds', 0))}  |  "
+            f"{int(best.get('ghosts_killed', 0))} ghosts  |  {int(best.get('health_remaining', 0))} HP left"
+        )
+    y = 155
+    for row in rows:
+        surface = font.render(row, 1, (67, 54, 51))
+        screen.blit(surface, (640 - surface.get_width() // 2, y))
+        y += 42
 
 ##ui sounds
 pygame.mixer.init()
@@ -121,27 +155,33 @@ class Main_Menu(object):
         self.keep_track = False
         self.selected_index = next((i for i, b in enumerate(self.buttons) if not isinstance(b, Locked_Button)), 0)
         self._controller_focus = False
+        self.navigation_grid = [[0], [2], [1]]
 
     def _move_selection(self, dx, dy):
-        if not self.buttons:
+        if not self.buttons or not getattr(self, 'navigation_grid', None):
             return
-        current = self.buttons[self.selected_index]
-        cx = (current.top_left_corner[0] + current.bottom_right_corner[0]) / 2
-        cy = (current.top_left_corner[1] + current.bottom_right_corner[1]) / 2
-        candidates = []
-        for i, button in enumerate(self.buttons):
-            if i == self.selected_index:
+        for row, items in enumerate(self.navigation_grid):
+            if self.selected_index not in items:
                 continue
-            bx = (button.top_left_corner[0] + button.bottom_right_corner[0]) / 2
-            by = (button.top_left_corner[1] + button.bottom_right_corner[1]) / 2
-            vx, vy = bx - cx, by - cy
-            primary = vx * dx + vy * dy
-            if primary <= 0:
-                continue
-            secondary = abs(vx * dy - vy * dx)
-            candidates.append((secondary / primary, vx * vx + vy * vy, i))
-        if candidates:
-            self.selected_index = min(candidates)[2]
+            col = items.index(self.selected_index)
+            if dy:
+                target_row = row + dy
+                while 0 <= target_row < len(self.navigation_grid):
+                    target_items = self.navigation_grid[target_row]
+                    choices = [(abs(target_col-col), target_col, target)
+                               for target_col, target in enumerate(target_items)
+                               if target is not None and target < len(self.buttons)]
+                    if choices:
+                        _, _, self.selected_index = min(choices)
+                        return
+                    target_row += dy
+            else:
+                target_col = col + dx
+                if 0 <= target_col < len(items):
+                    target = items[target_col]
+                    if target is not None and target < len(self.buttons):
+                        self.selected_index = target
+            return
 
 
     def update_menu(self):
@@ -209,6 +249,7 @@ class Pause_Menu(Main_Menu):
             Menu_Button('LEVEL SELECTOR', self.gameObj.color['dark'], self.gameObj.color['lightest'], 100, 400, goto_levelselector, (self,)),
             Menu_Button('QUIT GAME', self.gameObj.color['dark'], self.gameObj.color['lightest'], 100, 600, quit_button, (self,))
         ]
+        self.navigation_grid = [[0], [1], [2]]
         y = 300
         for btn in self.buttons:
             a, b = btn.img1.get_size()
@@ -223,26 +264,30 @@ class Win_Menu(Main_Menu):
         self.bg = pygame.transform.smoothscale(pygame.image.load('images/level_clear.png'), self.gameObj.screen_size)
         img = heading_font.render(f'{level_name} CLEARED', 1, self.gameObj.color['dark'])
         self.bg.blit(img, (40, 60))
+        draw_level_score(self.bg, getattr(gameObj, 'level_result', None))
         self.buttons = [
-            Menu_Button('NEXT LEVEL', self.gameObj.color['dark'], self.gameObj.color['lightest'], 40, 400, next_level_button, (self,)),
-            Menu_Button('EXIT GAME', self.gameObj.color['dark'], self.gameObj.color['lightest'], 440, 400, quit_button, (self,)),
-            Menu_Button('PLAY AGAIN', self.gameObj.color['dark'], self.gameObj.color['lightest'], 840, 400, resume_game_button, (self,)),
-            Menu_Button('LEVEL SELECTOR', self.gameObj.color['dark'], self.gameObj.color['lightest'], 40, 600, goto_levelselector, (self,))
+            Menu_Button('NEXT LEVEL', self.gameObj.color['dark'], self.gameObj.color['lightest'], 120, 490, next_level_button, (self,)),
+            Menu_Button('EXIT GAME', self.gameObj.color['dark'], self.gameObj.color['lightest'], 680, 490, quit_button, (self,)),
+            Menu_Button('PLAY AGAIN', self.gameObj.color['dark'], self.gameObj.color['lightest'], 120, 595, resume_game_button, (self,)),
+            Menu_Button('LEVEL SELECTOR', self.gameObj.color['dark'], self.gameObj.color['lightest'], 680, 595, goto_levelselector, (self,))
         ]
+        self.navigation_grid = [[0, 1], [2, 3]]
 
 class Game_Complete_Menu(Main_Menu):
     def __init__(self, gameObj: game.Game):
         Main_Menu.__init__(self, gameObj)
 
         self.buttons = [
-            Menu_Button('NEW GAME', self.gameObj.color['dark'], self.gameObj.color['lightest'], 40, 400, new_game_button, (self,)),
-            Menu_Button('EXIT GAME', self.gameObj.color['dark'], self.gameObj.color['lightest'], 440, 400, quit_button, (self,)),
-            Menu_Button('LEVEL SELECTOR', self.gameObj.color['dark'], self.gameObj.color['lightest'], 840, 400, goto_levelselector, (self,))
+            Menu_Button('NEW GAME', self.gameObj.color['dark'], self.gameObj.color['lightest'], 120, 520, new_game_button, (self,)),
+            Menu_Button('EXIT GAME', self.gameObj.color['dark'], self.gameObj.color['lightest'], 680, 520, quit_button, (self,)),
+            Menu_Button('LEVEL SELECTOR', self.gameObj.color['dark'], self.gameObj.color['lightest'], 120, 615, goto_levelselector, (self,))
         ]
+        self.navigation_grid = [[0, 1], [2, None]]
 
         self.bg = pygame.transform.smoothscale(pygame.image.load('images/level_clear.png'), self.gameObj.screen_size)
         img = heading_font.render(f'FULL GAME COMPLETE', 1, self.gameObj.color['dark'])
         self.bg.blit(img, (40, 60))
+        draw_level_score(self.bg, getattr(gameObj, 'level_result', None))
 
 
 class Game_Over_Menu(Main_Menu):
@@ -252,46 +297,65 @@ class Game_Over_Menu(Main_Menu):
         img = heading_font.render(f'YOU JUST COULD NOT MAKE IT', 1, self.gameObj.color['dark'])
         self.bg.blit(img, (40, 60))
         self.buttons = [
-            Menu_Button('LEVEL SELECTOR', self.gameObj.color['dark'], self.gameObj.color['lightest'], 840, 400, goto_levelselector, (self,)),
-            Menu_Button('EXIT GAME', self.gameObj.color['dark'], self.gameObj.color['lightest'], 440, 400, quit_button, (self,)),
-            Menu_Button('TRY AGAIN', self.gameObj.color['dark'], self.gameObj.color['lightest'], 40, 400, resume_game_button, (self,)) 
+            Menu_Button('TRY AGAIN', self.gameObj.color['dark'], self.gameObj.color['lightest'], 220, 420, resume_game_button, (self,)),
+            Menu_Button('LEVEL SELECTOR', self.gameObj.color['dark'], self.gameObj.color['lightest'], 680, 420, goto_levelselector, (self,)),
+            Menu_Button('EXIT GAME', self.gameObj.color['dark'], self.gameObj.color['lightest'], 220, 535, quit_button, (self,))
         ]
+        self.navigation_grid = [[0, 1], [2, None]]
 
 
 class Level_Selector_Menu(Main_Menu):
-    def __init__(self, gameObj : game.Game):
-        Main_Menu.__init__(self, gameObj)
-        self.bg = pygame.transform.smoothscale(pygame.image.load('images/level_clear.png'), self.gameObj.screen_size)
-        img = heading_font.render('LEVEL SELECTOR', 1, self.gameObj.color['dark'])
-        self.bg.blit(img, (40, 60))
+    PAGE_SIZE = 9
 
+    def __init__(self, gameObj : game.Game, page=0):
+        Main_Menu.__init__(self, gameObj)
+        self.page = page
+        self._page_needs_rebuild = False
+        self._build_buttons()
+        self.islevelselector = True
+
+    @property
+    def page_count(self):
+        return max(1, (len(self.gameObj.level_names) + self.PAGE_SIZE - 1) // self.PAGE_SIZE)
+
+    def _build_buttons(self):
+        self.bg = pygame.transform.smoothscale(pygame.image.load('images/level_clear.png'), self.gameObj.screen_size)
+        heading = heading_font.render('LEVEL SELECTOR', 1, self.gameObj.color['dark'])
+        self.bg.blit(heading, (40, 60))
         self.buttons = []
-        x = 40; y = 300
         with open('Max-Level-Unlocked', 'rb') as f:
             max_lev = pickle.load(f)
-        for i in range(max_lev + 1):
-            self.buttons.append(
-                Menu_Button(self.gameObj.level_names[i], self.gameObj.color['dark'], self.gameObj.color['lightest'], x, y, start_level_button, (self, int(i)))
-            )
-            x += self.buttons[-1].img.get_width() + 30
-            if x > 970:
-                x = 40
-                y += self.buttons[-1].img.get_height() + 20
-        
-        for i in range(max_lev + 1, len(self.gameObj.level_names)):
-            self.buttons.append(
-                Locked_Button(self.gameObj.level_names[i], self.gameObj.color['light'], self.gameObj.color['light-2'], x, y)
-            )
-            x += self.buttons[-1].img.get_width() + 30
-            if x > 970:
-                x = 40
-                y += self.buttons[-1].img.get_height() + 20
-        
-        self.buttons.append(
-            Menu_Button('EXIT GAME', self.gameObj.color['dark'], self.gameObj.color['lightest'], 40, 650, quit_button, (self,))
-        )
+        first = self.page * self.PAGE_SIZE
+        last = min(len(self.gameObj.level_names), first + self.PAGE_SIZE)
+        page_items = last - first
+        for local_index, level_index in enumerate(range(first, last)):
+            col, row = local_index % 3, local_index // 3
+            x, y = (55, 455, 855)[col], 170 + row * 120
+            name = self.gameObj.level_names[level_index]
+            if level_index <= max_lev:
+                button = Menu_Button(name, self.gameObj.color['dark'], self.gameObj.color['lightest'], x, y,
+                                     start_level_button, (self, level_index))
+            else:
+                button = Locked_Button(name, self.gameObj.color['light'], self.gameObj.color['light-2'], x, y)
+            self.buttons.append(button)
+        nav_y = 585
+        self.buttons.append(Locked_Button('PREV PAGE', self.gameObj.color['light'], self.gameObj.color['light-2'], 55, nav_y)
+                            if self.page == 0 else Menu_Button('PREV PAGE', self.gameObj.color['dark'], self.gameObj.color['lightest'], 55, nav_y, previous_level_page, (self,)))
+        self.buttons.append(Locked_Button('NEXT PAGE', self.gameObj.color['light'], self.gameObj.color['light-2'], 455, nav_y)
+                            if self.page + 1 >= self.page_count else Menu_Button('NEXT PAGE', self.gameObj.color['dark'], self.gameObj.color['lightest'], 455, nav_y, next_level_page, (self,)))
+        self.buttons.append(Menu_Button('BACK', self.gameObj.color['dark'], self.gameObj.color['lightest'], 955, nav_y, back_from_levelselector, (self,)))
+        page_text = content_font.render(f'PAGE {self.page + 1} / {self.page_count}', 1, self.gameObj.color['dark'])
+        self.bg.blit(page_text, (640 - page_text.get_width() // 2, 650))
         self.selected_index = 0
-        self.islevelselector = True
+        level_rows = [[i if i < page_items else None for i in range(row * 3, row * 3 + 3)] for row in range(3)]
+        footer = [page_items, page_items + 1, page_items + 2]
+        self.navigation_grid = level_rows + [footer]
+
+    def update_menu(self):
+        if self._page_needs_rebuild:
+            self._page_needs_rebuild = False
+            self._build_buttons()
+        Main_Menu.update_menu(self)
 
 
 

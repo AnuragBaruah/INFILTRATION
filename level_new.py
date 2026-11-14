@@ -1,6 +1,6 @@
 from Levels import *
 
-import pickle, player_new, random, game, enemy_new, pygame, effects
+import pickle, player_new, random, game, enemy_new, pygame, effects, scoring
 
 
 def rotate_img(img : pygame.Surface, angle : int, x1 : int, y1 : int) -> tuple[pygame.Surface, tuple[int,int]]:
@@ -14,8 +14,15 @@ def rotate_img(img : pygame.Surface, angle : int, x1 : int, y1 : int) -> tuple[p
 class Level(object):
     def __init__(self, gameObj : game.Game, level_name : str):
         self.gameObj = gameObj
+        self.gameObj.level_result = None
+        self.level_name = level_name
         self.effects = effects.Effects(gameObj.screen_size)
         self._last_player_health = None
+        self.elapsed_seconds = 0.0
+        self._last_active_tick = pygame.time.get_ticks()
+        self.ghosts_killed = 0
+        self.patrols_killed = 0
+        self._score_recorded = False
         with open(f'Levels/{level_name}/{level_name}.map', 'rb') as f:
             map_data = pickle.load(f)
         self.walls = map_data['walls']
@@ -41,6 +48,10 @@ class Level(object):
                 wall = pygame.Rect(x, y, w, h)
                 wl[j] = wall
         self.player = player_new.Player(self.gameObj, map_data['player_data'][0], map_data['player_data'][1] ,level_name)
+        level_module = globals().get(level_name)
+        self.starting_health = max(1, int(getattr(level_module, 'starting_health', self.player.health)))
+        self.player.health = self.starting_health
+        self.player.max_health = self.starting_health
         self.player.set_slash_frames(self.slash_frames)
         self._last_player_health = self.player.health
         self.player_grid = (1, 0)
@@ -51,9 +62,11 @@ class Level(object):
         ed = map_data['enemy_data']
         for e in ed:
             if e[2] == 'basic':
-                self.enemies.append(enemy_new.Enemy_Basic(self.gameObj, e[0], e[1], level_name))
+                enemy = enemy_new.Enemy_Basic(self.gameObj, e[0], e[1], level_name)
             else:
-                self.enemies.append(enemy_new.Enemy_Weak(self.gameObj, e[0], e[1], level_name))
+                enemy = enemy_new.Enemy_Weak(self.gameObj, e[0], e[1], level_name)
+            enemy.level_enemy_kind = e[2]
+            self.enemies.append(enemy)
 
         
         self.bombs = Bomb(self, map_data['bomb_positions'])
@@ -76,7 +89,30 @@ class Level(object):
 
     
     
+    def _collect_dead_enemies(self):
+        for enemy in list(self.enemies):
+            if enemy.health <= 0:
+                self.enemies.remove(enemy)
+                if getattr(enemy, 'level_enemy_kind', 'basic') == 'basic':
+                    self.ghosts_killed += 1
+                else:
+                    self.patrols_killed += 1
+
+    def finish_level(self):
+        if self._score_recorded:
+            return
+        self._collect_dead_enemies()
+        result = scoring.calculate_result(
+            self.level_name, self.elapsed_seconds, self.ghosts_killed,
+            self.patrols_killed, self.starting_health, self.player.health,
+        )
+        self.gameObj.level_result = scoring.record_result(result)
+        self._score_recorded = True
+
     def update_world(self):
+        now = pygame.time.get_ticks()
+        self.elapsed_seconds += min(max(0, now - self._last_active_tick), 250) / 1000
+        self._last_active_tick = now
         self.effects.update()
         self.player.update_slash_animation()
         if self.player.health < 0:
@@ -92,6 +128,7 @@ class Level(object):
 
         if self.gameObj.INPUTS['detonate']:
             self.bombs.cause_explosion(self.enemies + [self.player])
+            self._collect_dead_enemies()
 
         self.bombs.check_pickup()
         
@@ -100,8 +137,8 @@ class Level(object):
 
         enemies = list(self.enemies)
         for enemy in enemies:
-            if enemy.health < 0:
-                self.enemies.remove(enemy)
+            if enemy.health <= 0:
+                self._collect_dead_enemies()
                 continue
             enemy.update_anger_state(self.player)
             enemy.velocity_update(self.player, self.walls[enemy.x//1280, enemy.y//720])
@@ -111,11 +148,13 @@ class Level(object):
             hit_targets = self.player.knife_attack(self.enemies) or []
             for target in hit_targets:
                 self.effects.add_knife_hit(target.center)
+            self._collect_dead_enemies()
 
         if self._last_player_health is not None and self.player.health < self._last_player_health:
             self.effects.player_hurt()
         self._last_player_health = self.player.health
 
+        self._collect_dead_enemies()
         self.trigger_event.check_trigger_event()
         
     
@@ -200,6 +239,7 @@ class Trigger_event(object):
             self.trigger_pos = self.sequence.pop(0)
             self.trigger_func = self.functions_list.pop(0)
         except IndexError:
+            self.levelObj.finish_level()
             self.gameObj.isplaying = False
             self.gameObj.menumode = 'win'
             
@@ -267,9 +307,9 @@ class Bomb(object):
             sources = [bomb for bomb in bomb_sources if bomb.colliderect(target)]
             if not sources:
                 continue
-            was_alive = target.health >= 0
+            was_alive = target.health > 0
             target.health -= 50 * len(sources)
-            if target is not self.levelObj.player and was_alive and target.health < 0:
+            if target is not self.levelObj.player and was_alive and target.health <= 0:
                 source = min(sources, key=lambda b: (pygame.Vector2(target.center).distance_squared_to(b.center), bomb_sources.index(b)))
                 self.levelObj.effects.add_bomb_kill(target.center, source.center)
         self.planted.clear()

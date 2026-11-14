@@ -91,9 +91,9 @@ def main():
         if gameObj.isplaying:
             gameObj.music_channel.unpause()
             if not gameObj.menumode == 'pause':
-                level_name = gameObj.level_names[gameObj.playing_level_index]
-                print(f'{level_name} initialised in main loop')
-                levelObj = level_new.Level(gameObj, level_name)
+                level_id = gameObj.level_ids[gameObj.playing_level_index]
+                print(f'{gameObj.level_names[gameObj.playing_level_index]} initialised in main loop')
+                levelObj = level_new.Level(gameObj, level_id)
             
             pygame.mouse.set_visible(False)
             gameObj.menumode = ''
@@ -116,7 +116,7 @@ def main():
                     menu_mode = 'pause'
                     gameObj.music_channel.pause()
                 elif gameObj.menumode == 'win':
-                    menuObj = menu.Win_Menu(gameObj, level_name)
+                    menuObj = menu.Win_Menu(gameObj, gameObj.level_names[gameObj.playing_level_index])
                     menu_mode = 'win'
                 elif gameObj.menumode == 'gamecomplete':
                     menuObj = menu.Game_Complete_Menu(gameObj)

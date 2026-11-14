@@ -1,0 +1,596 @@
+{
+  "AshCourt": {
+    "ghosts_killed": 3,
+    "health_lost": 0,
+    "health_remaining": 120,
+    "patrols_killed": 0,
+    "score": 8870,
+    "starting_health": 120,
+    "time_seconds": 10
+  },
+  "Blackout": {
+    "ghosts_killed": 0,
+    "health_lost": 55,
+    "health_remaining": 30,
+    "patrols_killed": 0,
+    "score": 5238,
+    "starting_health": 85,
+    "time_seconds": 14
+  },
+  "BlindCorner": {
+    "ghosts_killed": 0,
+    "health_lost": 50,
+    "health_remaining": 50,
+    "patrols_killed": 0,
+    "score": 5770,
+    "starting_health": 100,
+    "time_seconds": 10
+  },
+  "BlindRelay": {
+    "ghosts_killed": 0,
+    "health_lost": 62,
+    "health_remaining": 28,
+    "patrols_killed": 0,
+    "score": 5164,
+    "starting_health": 90,
+    "time_seconds": 17
+  },
+  "BlindTurn": {
+    "ghosts_killed": 3,
+    "health_lost": 20,
+    "health_remaining": 95,
+    "patrols_killed": 0,
+    "score": 8157,
+    "starting_health": 115,
+    "time_seconds": 21
+  },
+  "Bloodbath": {
+    "ghosts_killed": 13,
+    "health_lost": 11,
+    "health_remaining": 89,
+    "patrols_killed": 0,
+    "score": 12339,
+    "starting_health": 100,
+    "time_seconds": 42
+  },
+  "Bombs": {
+    "ghosts_killed": 2,
+    "health_lost": 3,
+    "health_remaining": 127,
+    "patrols_killed": 0,
+    "score": 8611,
+    "starting_health": 130,
+    "time_seconds": 8
+  },
+  "BrokenYard": {
+    "ghosts_killed": 4,
+    "health_lost": 9,
+    "health_remaining": 81,
+    "patrols_killed": 0,
+    "score": 8201,
+    "starting_health": 90,
+    "time_seconds": 28
+  },
+  "C01_BrokenLine": {
+    "ghosts_killed": 0,
+    "health_lost": 0,
+    "health_remaining": 125,
+    "patrols_killed": 0,
+    "score": 7685,
+    "starting_health": 125,
+    "time_seconds": 5
+  },
+  "C02_SafeHarbor": {
+    "ghosts_killed": 0,
+    "health_lost": 0,
+    "health_remaining": 125,
+    "patrols_killed": 0,
+    "score": 7685,
+    "starting_health": 125,
+    "time_seconds": 5
+  },
+  "C03_ThreeLanes": {
+    "ghosts_killed": 0,
+    "health_lost": 6,
+    "health_remaining": 114,
+    "patrols_killed": 0,
+    "score": 7386,
+    "starting_health": 120,
+    "time_seconds": 8
+  },
+  "C04_ShiftingGate": {
+    "ghosts_killed": 0,
+    "health_lost": 7,
+    "health_remaining": 108,
+    "patrols_killed": 0,
+    "score": 7220,
+    "starting_health": 115,
+    "time_seconds": 10
+  },
+  "C05_DeadAngle": {
+    "ghosts_killed": 0,
+    "health_lost": 4,
+    "health_remaining": 116,
+    "patrols_killed": 0,
+    "score": 7452,
+    "starting_health": 120,
+    "time_seconds": 6
+  },
+  "C06_BaitTheGhost": {
+    "ghosts_killed": 0,
+    "health_lost": 2,
+    "health_remaining": 123,
+    "patrols_killed": 0,
+    "score": 7619,
+    "starting_health": 125,
+    "time_seconds": 7
+  },
+  "C07_TwoStep": {
+    "ghosts_killed": 0,
+    "health_lost": 2,
+    "health_remaining": 113,
+    "patrols_killed": 0,
+    "score": 7345,
+    "starting_health": 115,
+    "time_seconds": 10
+  },
+  "C08_OneWayIn": {
+    "ghosts_killed": 0,
+    "health_lost": 1,
+    "health_remaining": 109,
+    "patrols_killed": 0,
+    "score": 7261,
+    "starting_health": 110,
+    "time_seconds": 8
+  },
+  "CargoMaze": {
+    "ghosts_killed": 0,
+    "health_lost": 31,
+    "health_remaining": 64,
+    "patrols_killed": 0,
+    "score": 5824,
+    "starting_health": 95,
+    "time_seconds": 47
+  },
+  "CinderBlock": {
+    "ghosts_killed": 0,
+    "health_lost": 12,
+    "health_remaining": 98,
+    "patrols_killed": 0,
+    "score": 6978,
+    "starting_health": 110,
+    "time_seconds": 9
+  },
+  "ColdStorage": {
+    "ghosts_killed": 0,
+    "health_lost": 50,
+    "health_remaining": 30,
+    "patrols_killed": 0,
+    "score": 5190,
+    "starting_health": 80,
+    "time_seconds": 20
+  },
+  "DETONATE": {
+    "ghosts_killed": 19,
+    "health_lost": 59,
+    "health_remaining": 71,
+    "patrols_killed": 0,
+    "score": 14629,
+    "starting_health": 130,
+    "time_seconds": 37
+  },
+  "DeadLetter": {
+    "ghosts_killed": 0,
+    "health_lost": 30,
+    "health_remaining": 60,
+    "patrols_killed": 0,
+    "score": 5980,
+    "starting_health": 90,
+    "time_seconds": 15
+  },
+  "DirectionSense": {
+    "ghosts_killed": 17,
+    "health_lost": 72,
+    "health_remaining": 58,
+    "patrols_killed": 0,
+    "score": 12876,
+    "starting_health": 130,
+    "time_seconds": 103
+  },
+  "DispatchLoop": {
+    "ghosts_killed": 0,
+    "health_lost": 78,
+    "health_remaining": 17,
+    "patrols_killed": 0,
+    "score": 4785,
+    "starting_health": 95,
+    "time_seconds": 30
+  },
+  "ExtractionRoute": {
+    "ghosts_killed": 4,
+    "health_lost": 54,
+    "health_remaining": 16,
+    "patrols_killed": 0,
+    "score": 6296,
+    "starting_health": 70,
+    "time_seconds": 63
+  },
+  "FalseShortcut": {
+    "ghosts_killed": 0,
+    "health_lost": 38,
+    "health_remaining": 57,
+    "patrols_killed": 0,
+    "score": 5785,
+    "starting_health": 95,
+    "time_seconds": 30
+  },
+  "Floodgate": {
+    "ghosts_killed": 0,
+    "health_lost": 33,
+    "health_remaining": 67,
+    "patrols_killed": 0,
+    "score": 6147,
+    "starting_health": 100,
+    "time_seconds": 16
+  },
+  "FloodplainLoop": {
+    "ghosts_killed": 3,
+    "health_lost": 9,
+    "health_remaining": 106,
+    "patrols_killed": 0,
+    "score": 8312,
+    "starting_health": 115,
+    "time_seconds": 36
+  },
+  "FortBracket": {
+    "ghosts_killed": 1,
+    "health_lost": 38,
+    "health_remaining": 67,
+    "patrols_killed": 0,
+    "score": 6509,
+    "starting_health": 105,
+    "time_seconds": 27
+  },
+  "FoundrySpiral": {
+    "ghosts_killed": 5,
+    "health_lost": 53,
+    "health_remaining": 37,
+    "patrols_killed": 0,
+    "score": 7279,
+    "starting_health": 90,
+    "time_seconds": 62
+  },
+  "FreightBraid": {
+    "ghosts_killed": 4,
+    "health_lost": 12,
+    "health_remaining": 88,
+    "patrols_killed": 0,
+    "score": 8400,
+    "starting_health": 100,
+    "time_seconds": 25
+  },
+  "GetKnife": {
+    "ghosts_killed": 0,
+    "health_lost": 56,
+    "health_remaining": 74,
+    "patrols_killed": 0,
+    "score": 6346,
+    "starting_health": 130,
+    "time_seconds": 13
+  },
+  "GhostLine": {
+    "ghosts_killed": 5,
+    "health_lost": 28,
+    "health_remaining": 47,
+    "patrols_killed": 1,
+    "score": 8001,
+    "starting_health": 75,
+    "time_seconds": 28
+  },
+  "Ghosts": {
+    "ghosts_killed": 0,
+    "health_lost": 10,
+    "health_remaining": 105,
+    "patrols_killed": 0,
+    "score": 7041,
+    "starting_health": 115,
+    "time_seconds": 23
+  },
+  "Glasshouse": {
+    "ghosts_killed": 0,
+    "health_lost": 34,
+    "health_remaining": 36,
+    "patrols_killed": 0,
+    "score": 5380,
+    "starting_health": 70,
+    "time_seconds": 15
+  },
+  "Knife": {
+    "ghosts_killed": 0,
+    "health_lost": 0,
+    "health_remaining": 130,
+    "patrols_killed": 0,
+    "score": 7834,
+    "starting_health": 130,
+    "time_seconds": 2
+  },
+  "LongReturn": {
+    "ghosts_killed": 5,
+    "health_lost": 2,
+    "health_remaining": 88,
+    "patrols_killed": 0,
+    "score": 8810,
+    "starting_health": 90,
+    "time_seconds": 30
+  },
+  "Move": {
+    "ghosts_killed": 0,
+    "health_lost": 0,
+    "health_remaining": 130,
+    "patrols_killed": 0,
+    "score": 7834,
+    "starting_health": 130,
+    "time_seconds": 2
+  },
+  "NarrowGauge": {
+    "ghosts_killed": 3,
+    "health_lost": 23,
+    "health_remaining": 92,
+    "patrols_killed": 0,
+    "score": 8090,
+    "starting_health": 115,
+    "time_seconds": 20
+  },
+  "NightDocks": {
+    "ghosts_killed": 3,
+    "health_lost": 17,
+    "health_remaining": 93,
+    "patrols_killed": 0,
+    "score": 8099,
+    "starting_health": 110,
+    "time_seconds": 22
+  },
+  "NightShift": {
+    "ghosts_killed": 0,
+    "health_lost": 49,
+    "health_remaining": 46,
+    "patrols_killed": 0,
+    "score": 5630,
+    "starting_health": 95,
+    "time_seconds": 15
+  },
+  "NorthCrossing": {
+    "ghosts_killed": 5,
+    "health_lost": 4,
+    "health_remaining": 91,
+    "patrols_killed": 0,
+    "score": 8733,
+    "starting_health": 95,
+    "time_seconds": 49
+  },
+  "PaperDistrict": {
+    "ghosts_killed": 3,
+    "health_lost": 0,
+    "health_remaining": 115,
+    "patrols_killed": 0,
+    "score": 8649,
+    "starting_health": 115,
+    "time_seconds": 22
+  },
+  "PaperTrail": {
+    "ghosts_killed": 0,
+    "health_lost": 58,
+    "health_remaining": 37,
+    "patrols_killed": 0,
+    "score": 5373,
+    "starting_health": 95,
+    "time_seconds": 19
+  },
+  "Patrol": {
+    "ghosts_killed": 0,
+    "health_lost": 0,
+    "health_remaining": 130,
+    "patrols_killed": 0,
+    "score": 7834,
+    "starting_health": 130,
+    "time_seconds": 2
+  },
+  "PumpStation": {
+    "ghosts_killed": 4,
+    "health_lost": 18,
+    "health_remaining": 82,
+    "patrols_killed": 0,
+    "score": 8250,
+    "starting_health": 100,
+    "time_seconds": 25
+  },
+  "R01_SlalomRefit": {
+    "ghosts_killed": 0,
+    "health_lost": 7,
+    "health_remaining": 108,
+    "patrols_killed": 0,
+    "score": 7228,
+    "starting_health": 115,
+    "time_seconds": 9
+  },
+  "R02_MazeRead": {
+    "ghosts_killed": 0,
+    "health_lost": 0,
+    "health_remaining": 110,
+    "patrols_killed": 0,
+    "score": 7246,
+    "starting_health": 110,
+    "time_seconds": 13
+  },
+  "Redoubt": {
+    "ghosts_killed": 0,
+    "health_lost": 61,
+    "health_remaining": 24,
+    "patrols_killed": 0,
+    "score": 5048,
+    "starting_health": 85,
+    "time_seconds": 19
+  },
+  "SaltwindCauseway": {
+    "ghosts_killed": 3,
+    "health_lost": 2,
+    "health_remaining": 123,
+    "patrols_killed": 0,
+    "score": 8913,
+    "starting_health": 125,
+    "time_seconds": 14
+  },
+  "Saltworks": {
+    "ghosts_killed": 0,
+    "health_lost": 10,
+    "health_remaining": 110,
+    "patrols_killed": 0,
+    "score": 7302,
+    "starting_health": 120,
+    "time_seconds": 6
+  },
+  "SawtoothMile": {
+    "ghosts_killed": 3,
+    "health_lost": 2,
+    "health_remaining": 98,
+    "patrols_killed": 1,
+    "score": 8344,
+    "starting_health": 100,
+    "time_seconds": 32
+  },
+  "Slalom": {
+    "ghosts_killed": 0,
+    "health_lost": 2,
+    "health_remaining": 98,
+    "patrols_killed": 0,
+    "score": 6938,
+    "starting_health": 100,
+    "time_seconds": 14
+  },
+  "SluiceGate": {
+    "ghosts_killed": 3,
+    "health_lost": 54,
+    "health_remaining": 66,
+    "patrols_killed": 0,
+    "score": 7480,
+    "starting_health": 120,
+    "time_seconds": 15
+  },
+  "SplitBasin": {
+    "ghosts_killed": 0,
+    "health_lost": 53,
+    "health_remaining": 42,
+    "patrols_killed": 0,
+    "score": 5514,
+    "starting_health": 95,
+    "time_seconds": 17
+  },
+  "Switchyard": {
+    "ghosts_killed": 0,
+    "health_lost": 56,
+    "health_remaining": 59,
+    "patrols_killed": 0,
+    "score": 5939,
+    "starting_health": 115,
+    "time_seconds": 17
+  },
+  "TheCorners": {
+    "ghosts_killed": 22,
+    "health_lost": 62,
+    "health_remaining": 68,
+    "patrols_killed": 1,
+    "score": 15376,
+    "starting_health": 130,
+    "time_seconds": 128
+  },
+  "TheGauntlet": {
+    "ghosts_killed": 0,
+    "health_lost": 25,
+    "health_remaining": 50,
+    "patrols_killed": 0,
+    "score": 5746,
+    "starting_health": 75,
+    "time_seconds": 13
+  },
+  "TheKnifeEdge": {
+    "ghosts_killed": 0,
+    "health_lost": 28,
+    "health_remaining": 72,
+    "patrols_killed": 0,
+    "score": 6320,
+    "starting_health": 100,
+    "time_seconds": 10
+  },
+  "TheNarrows": {
+    "ghosts_killed": 0,
+    "health_lost": 33,
+    "health_remaining": 42,
+    "patrols_killed": 0,
+    "score": 5578,
+    "starting_health": 75,
+    "time_seconds": 9
+  },
+  "TheSluice": {
+    "ghosts_killed": 0,
+    "health_lost": 66,
+    "health_remaining": 44,
+    "patrols_killed": 0,
+    "score": 5572,
+    "starting_health": 110,
+    "time_seconds": 16
+  },
+  "ThreeCourtyards": {
+    "ghosts_killed": 5,
+    "health_lost": 10,
+    "health_remaining": 90,
+    "patrols_killed": 0,
+    "score": 8844,
+    "starting_health": 100,
+    "time_seconds": 32
+  },
+  "TwinSwitches": {
+    "ghosts_killed": 3,
+    "health_lost": 0,
+    "health_remaining": 125,
+    "patrols_killed": 0,
+    "score": 8859,
+    "starting_health": 125,
+    "time_seconds": 27
+  },
+  "TwoSparks": {
+    "ghosts_killed": 0,
+    "health_lost": 68,
+    "health_remaining": 32,
+    "patrols_killed": 0,
+    "score": 5224,
+    "starting_health": 100,
+    "time_seconds": 22
+  },
+  "Underpass": {
+    "ghosts_killed": 0,
+    "health_lost": 46,
+    "health_remaining": 59,
+    "patrols_killed": 0,
+    "score": 5971,
+    "starting_health": 105,
+    "time_seconds": 13
+  },
+  "UnderpassRelay": {
+    "ghosts_killed": 3,
+    "health_lost": 0,
+    "health_remaining": 120,
+    "patrols_killed": 0,
+    "score": 8830,
+    "starting_health": 120,
+    "time_seconds": 15
+  },
+  "ZIGZAG": {
+    "ghosts_killed": 0,
+    "health_lost": 70,
+    "health_remaining": 60,
+    "patrols_killed": 0,
+    "score": 5948,
+    "starting_health": 130,
+    "time_seconds": 19
+  }
+}

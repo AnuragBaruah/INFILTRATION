@@ -2,6 +2,11 @@ import pickle
 import random
 import pygame, player_new
 
+
+# Route points closer than this tend to make patrols flip direction repeatedly
+# because their collision boxes overlap both points at once.
+MIN_PATROL_NODE_DISTANCE = 72
+
 class Enemy_Basic(player_new.Player):
     def __init__(self, gameObj, x, y, level_name):
         player_new.Player.__init__(self, gameObj, x, y, level_name)
@@ -27,6 +32,21 @@ class Enemy_Basic(player_new.Player):
             i.set_volume(0.2)
     
     def reset_nodes(self):
+        # Ignore malformed, duplicate, and near-duplicate links in authored maps.
+        # Keep the original node indices so enemy spawn locations still select
+        # the same part of the patrol route.
+        node_count = len(self.path_nodes)
+        clean_lines = []
+        for source, neighbors in enumerate(self.path_lines):
+            valid = []
+            for target in neighbors:
+                if not 0 <= target < node_count or target == source:
+                    continue
+                if pygame.Vector2(self.path_nodes[source]).distance_to(self.path_nodes[target]) >= MIN_PATROL_NODE_DISTANCE:
+                    valid.append(target)
+            clean_lines.append(tuple(dict.fromkeys(valid)))
+        self.path_lines = clean_lines
+
         m_min = 100000
         self.node_from = -1
         for i in range(len(self.path_nodes)):
@@ -36,18 +56,31 @@ class Enemy_Basic(player_new.Player):
                 m_min = m
                 self.node_from = i
         t = list(self.path_lines[self.node_from])
-        self.node_to = t[random.randint(0, len(t) - 1)]
+        if not t:
+            t = [i for i, node in enumerate(self.path_nodes)
+                 if i != self.node_from and pygame.Vector2(self.path_nodes[self.node_from]).distance_to(node) >= MIN_PATROL_NODE_DISTANCE]
+        self.node_to = random.choice(t) if t else self.node_from
     
     def change_patrolling_direction(self):
         self.node_from = self.node_to
-        self.node_to = self.path_lines[self.node_to][random.randint(0, len(self.path_lines[self.node_to]) - 1)]
+        t = list(self.path_lines[self.node_to])
+        if not t:
+            t = [i for i, node in enumerate(self.path_nodes)
+                 if i != self.node_to and pygame.Vector2(self.path_nodes[self.node_to]).distance_to(node) >= MIN_PATROL_NODE_DISTANCE]
+        self.node_to = random.choice(t) if t else self.node_from
 
     def patrolling(self):
+        if self.node_to == self.node_from or not self.path_nodes:
+            self.velocity.xy = (0, 0)
+            return
         if self.collidepoint(self.path_nodes[self.node_to]):
             self.change_patrolling_direction()
         self.direction = self.path_nodes[self.node_to] - self.position
-        self.direction.scale_to_length(self.speed)
-        self.velocity = self.direction.copy()
+        if self.direction.length_squared() == 0:
+            self.velocity.xy = (0, 0)
+        else:
+            self.direction.scale_to_length(self.speed)
+            self.velocity = self.direction.copy()
 
     def chase_direction_update(self):
         self.direction = self.vector_to_player.copy()
