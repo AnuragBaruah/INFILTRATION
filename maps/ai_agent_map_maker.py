@@ -1,209 +1,467 @@
-"""Generate the authored 4-tutorial + 20-level INFILTRATION campaign.
+"""Generate the authored campaign with the runtime schema used by the map editor.
 
-Run from the repository root with ``python maps/ai_agent_map_maker.py``.
-Maps use the same pickle schema and package layout as ultimate_map_maker.py.
-The source maps and .mapsupport files remain in maps/ for later editing.
+Run from the repository root: ``python maps/ai_agent_map_maker.py``.
+Source maps and .mapsupport files are kept in maps/ for future editing.
 """
 from __future__ import annotations
 
-import os
 import pickle
+import os
 from pathlib import Path
+
+os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
 
 import pygame
 
 
 ROOT = Path(__file__).resolve().parents[1]
 MAPS = ROOT / "maps"
-LEVELS_DIR = ROOT / "Levels"
+LEVELS = ROOT / "Levels"
 CELL_W, CELL_H, BORDER = 1280, 720, 15
+MIN_PATROL_NODE_DISTANCE = 72
 
-# name, teaching/challenge focus, mission messages, enemy count, bombs, knife unlock checkpoint
+
+def level(name, size, style, purpose, messages, *, weak=0, ghosts=0, bombs=0,
+          knife=False, checkpoint_count=4, bomb_cluster=False, health=130):
+    return {
+        "name": name, "size": size, "style": style, "purpose": purpose,
+        "messages": messages, "weak": weak, "ghosts": ghosts, "bombs": bombs,
+        "knife": knife, "checkpoint_count": checkpoint_count,
+        "bomb_cluster": bomb_cluster, "health": health,
+    }
+
+
+# These entries specify distinct play patterns and world sizes. The campaign
+# starts with four focused tutorials, then moves into longer mixed challenges.
 CAMPAIGN = [
-    ("T01_FirstSteps", "tutorial", ["Welcome, operative.", "Reach the green checkpoints in order.", "Keep moving through the open training yard."], 0, [], None),
-    ("T02_ReadThePatrol", "tutorial", ["Patrols move between connected route nodes.", "Watch the guard, then cross behind it.", "Checkpoint reached. Keep your distance."], 1, [], None),
-    ("T03_CloseQuarters", "tutorial", ["Your knife is ready for close combat.", "Approach the weak guard and use a knife slash.", "Cross the yard after the patrol turns away."], 1, [], 0),
-    ("T04_BombSafety", "tutorial", ["Bombs are collected by walking over them.", "Plant one near the hostile, then retreat.", "Detonate only after you have left the blast."], 1, [(180, 560)], None),
-    ("L01_QuietApproach", "stealth", ["Stay wide of the patrol's sightline.", "Use the south opening to cross the yard.", "Reach the extraction marker."], 1, [], None),
-    ("L02_CoverToCover", "cover", ["Use the staggered barriers as cover.", "Cross between patrol passes.", "Secure the far checkpoint."], 2, [], None),
-    ("L03_TheLongHall", "corridor", ["The hall narrows ahead.", "Take the side opening before the guard turns.", "Clear the final checkpoint."], 2, [], None),
-    ("L04_Crossfire", "crossfire", ["Two patrol routes overlap in the center.", "Choose a lane and keep moving.", "Reach the exit beyond the crossfire."], 2, [], None),
-    ("L05_TheSupplyCache", "bomb", ["A bomb cache is marked near your start.", "Collect it before entering the guard's lane.", "Retreat from the blast before detonating."], 2, [(180, 565)], None),
-    ("L06_Switchback", "switchback", ["The walls form a switchback route.", "Follow the open turns around the barriers.", "The last marker is beyond the second bend."], 2, [], None),
-    ("L07_PatrolClock", "timing", ["This patrol crosses the central lane.", "Wait for it to move away, then pass.", "Reach the west side without getting pinned."], 2, [], None),
-    ("L08_ThePillars", "pillars", ["Pillars break up the open sightlines.", "Use the gaps to approach the next marker.", "Exit through the northeast lane."], 2, [], None),
-    ("L09_CloseQuarters", "knife", ["A weak guard blocks the short route.", "Close the distance and use your knife.", "Continue to the extraction point."], 2, [], 0),
-    ("L10_BlastRadius", "bomb", ["Collect the bomb before the central room.", "Plant it near the patrol, then back away.", "Detonate from a safe position and extract."], 2, [(180, 565)], None),
-    ("L11_ThreeLanes", "route choice", ["Three lanes lead across the yard.", "The center is fastest; the sides are safer.", "Choose a route and reach the far marker."], 3, [], None),
-    ("L12_TheGauntlet", "escape", ["The guards are close together here.", "Break contact and keep to the outer route.", "Do not stop in the center lane."], 3, [], None),
-    ("L13_DeadDrop", "bomb", ["A supply drop is waiting near the start.", "Take the bomb and enter the marked yard.", "Create space before you detonate."], 2, [(180, 565)], None),
-    ("L14_RedCorridor", "corridor", ["A narrow corridor splits the room.", "Use the two openings to avoid the patrols.", "The extraction marker is on the far side."], 3, [], None),
-    ("L15_RelayRun", "route", ["Move through the relay markers in order.", "The middle checkpoint is exposed.", "Keep moving to reach the final relay."], 3, [], None),
-    ("L16_TheBlindCorner", "ambush", ["A guard patrols behind the central wall.", "Approach through the lower opening.", "Turn the corner only when the route is clear."], 2, [], None),
-    ("L17_SilentExit", "stealth", ["Avoid contact and keep your health intact.", "Use the gaps between the patrol lanes.", "Reach the exit on the far edge."], 3, [], None),
-    ("L18_BreachPoint", "knife and bomb", ["A guard holds the breach point.", "Use the cache if you need to clear the route.", "The final checkpoint is behind the breach."], 3, [(180, 565)], 0),
-    ("L19_LastPatrol", "timing", ["This final patrol crosses your route twice.", "Use the side cover and watch its turn.", "Reach the extraction marker to finish."], 3, [], None),
-    ("L20_Extraction", "final challenge", ["Final operation: reach all three markers.", "Two patrol lanes cover the direct approach.", "Secure the last marker to complete the campaign."], 4, [(180, 565)], 0),
+    level("Move", (1, 1), "open", "tutorial", [
+        ("MOVE: KB/MOUSE W/S relative to cursor | CONTROLLER left stick.",),
+        ("Face the direction you want to travel.", "The blue arrow points to the next green marker."),
+        "Follow the green markers in order to clear the route.",
+    ], checkpoint_count=3),
+    level("Patrol", (1, 1), "lanes", "tutorial", [
+        ("MOVE: KB/MOUSE W/S relative to cursor | CONTROLLER left stick.", "Patrols hurt on contact; they follow fixed routes."),
+        ("Wait for a patrol to turn, then cross behind it.", "A weak patrol will not chase through the maze."),
+        "Keep moving and use the side gap to reach extraction.",
+    ], weak=2, checkpoint_count=3),
+    level("Knife", (1, 1), "arena", "tutorial", [
+        ("MOVE: KB/MOUSE W/S + cursor | CONTROLLER left stick.", "SLASH: KB/MOUSE right mouse | CONTROLLER RB."),
+        "Get close before slashing; knife range is short.",
+        "A weak patrol needs several hits. Time attacks between passes.",
+    ], weak=1, knife=True, checkpoint_count=3),
+    level("Bombs", (1, 1), "arena", "tutorial", [
+        ("MOVE: KB/MOUSE W/S + cursor | CONTROLLER left stick.", "Walk over a bomb pickup to collect it."),
+        ("PLANT: KB/MOUSE left mouse | CONTROLLER A.", "DETONATE: KB/MOUSE Space | CONTROLLER RT."),
+        "Plant, run clear of the blast, then detonate the ghost pack.",
+    ], ghosts=2, bombs=1, checkpoint_count=3),
+
+    level("Slalom", (2, 1), "zigzag", "movement", [
+        "The weak patrols fill the straight route.", "Cut through the alternating openings.",
+        "You must reverse direction twice before the exit.",
+    ], weak=7, checkpoint_count=4, health=100),
+    level("Ghosts", (2, 2), "rooms", "wall chasers", [
+        "Ghosts chase when you get close and can pass through walls.",
+        "A wall will not protect you. Keep changing direction.",
+        "Cross the four rooms and use the long outer loop to escape.",
+    ], ghosts=5, checkpoint_count=5, health=115),
+    level("Crosswind", (2, 1), "lanes", "patrol timing", [
+        "Eight patrols cross the hall on offset routes.", "Use the gaps between their passes.",
+        "A short pause can open a safer crossing than a straight dash.",
+    ], weak=8, checkpoint_count=4, health=85),
+    level("Detour", (2, 2), "switchback", "route reading", [
+        "The direct line is blocked in every room.", "Read the wall openings before committing.",
+        "Reach the far corner by alternating top and bottom passages.",
+    ], weak=4, ghosts=2, checkpoint_count=5),
+    level("Maze", (3, 2), "labyrinth", "map memory", [
+        "A large maze hides the route between checkpoints.", "The arrow shows direction, not a safe path.",
+        "Remember each opening as you cross the six sectors.",
+    ], weak=7, checkpoint_count=6, health=100),
+    level("DeadReckon", (3, 2), "spiral", "wall chasers and memory", [
+        "Ghosts cross walls and close from behind.", "The patrol routes are only in the central halls.",
+        "Remember the outer passage; it is the safest way back.",
+    ], weak=4, ghosts=5, checkpoint_count=6, health=105),
+    level("Pressure", (2, 2), "crossfire", "mixed threats", [
+        "Patrols hold the narrow lanes while ghosts cross walls.", "Do not stop in the center room.",
+        "Use the upper loop to split the threats, then double back.",
+    ], weak=6, ghosts=4, bombs=1, checkpoint_count=5, health=105),
+    level("LongHall", (3, 1), "corridor", "movement endurance", [
+        "The hall is long and patrols block each crossing.", "Change lanes at every second opening.",
+        "Save enough health for the far end; there is no shortcut back.",
+    ], weak=11, checkpoint_count=5, health=85),
+    level("Ambush", (2, 2), "ambush", "wall chaser timing", [
+        "Ghosts wait behind the walls near the objective route.", "They can cut through every barrier.",
+        "Bait them into the open, then break away around the next room.",
+    ], ghosts=8, checkpoint_count=5, health=95),
+    level("Lockdown", (3, 2), "rooms", "large mixed route", [
+        "Patrols guard the doors. Ghosts ignore the walls.", "The shortest route crosses the exposed center.",
+        "Use the outer halls to reset the chase before the last marker.",
+    ], weak=8, ghosts=5, checkpoint_count=6, health=90),
+    level("Bloodbath", (2, 2), "arena", "bomb cluster", [
+        "Collect the bombs before entering the hostile yard.", "Let the ghosts gather, then plant and escape.",
+        "One blast can clear a cluster. Never detonate beside the bomb.",
+    ], ghosts=14, bombs=4, checkpoint_count=5, bomb_cluster=True, health=100),
+    level("TwinFuses", (2, 1), "arena", "bomb chain", [
+        "A dense ghost pack is waiting in the central yard.", "Carry both bombs into the long lane.",
+        "Plant, run to the far cover, then detonate. Repeat for stragglers.",
+    ], ghosts=10, bombs=3, checkpoint_count=4, bomb_cluster=True, health=95),
+    level("Gauntlet", (2, 2), "lanes", "patrol obstacle", [
+        "Twelve weak patrols cross the route without chasing.", "Every opening is watched from one side.",
+        "Use the side pockets to wait out a bad crossing.",
+    ], weak=12, checkpoint_count=5, health=75),
+    level("Courtyard", (3, 2), "pillars", "knife combat", [
+        "Fourteen patrols hold the pillar courts. No bombs here.", "Knife range is short; slash as a patrol enters reach.",
+        "Pick off guards between passes, then cross the open court.",
+    ], weak=14, knife=True, checkpoint_count=6, health=95),
+    level("NoWayOut", (2, 2), "choke", "bomb escape", [
+        "The ghosts will converge on the narrow bridge.", "Collect the bombs on the way in.",
+        "Plant at the choke, retreat through the side gate, then detonate.",
+    ], ghosts=12, bombs=4, checkpoint_count=5, bomb_cluster=True),
+    level("Lost", (3, 2), "deadends", "navigation memory", [
+        "Six sectors, three dead ends, and a looping outer wall.", "The arrow cannot show which doorway is open.",
+        "Mark the route in your head before you sprint for the exit.",
+    ], weak=9, ghosts=2, checkpoint_count=6, health=90),
+    level("LastPatrol", (2, 2), "crossing", "patrol timing", [
+        "The patrols overlap at the final crossing.", "Use the waiting bays; do not fight in the lanes.",
+        "The last marker sits beyond the longest patrol loop.",
+    ], weak=14, checkpoint_count=5, health=70),
+    level("Breach", (2, 1), "choke", "knife and bomb", [
+        "Weak patrols hold the breach; ghosts close in from behind walls.", "Use the knife only when a patrol blocks the doorway.",
+        "Save bombs for the crowded room beyond the breach.",
+    ], weak=5, ghosts=7, bombs=3, knife=True, checkpoint_count=4, bomb_cluster=True, health=100),
+    level("Silent", (3, 2), "lanes", "stealth route", [
+        "Ten patrols can hurt you, but none will chase.", "Learn their loops and cross one lane at a time.",
+        "The outer route is longer and leaves more room to recover.",
+    ], weak=10, checkpoint_count=6, health=80),
+    level("Finale", (3, 2), "final", "campaign finale", [
+        "Patrols hold the doors while a ghost pack hunts you.", "Pick up all five bombs before the central arena.",
+        "Use the maze to gather the ghosts, clear a path, and extract.",
+    ], weak=8, ghosts=14, bombs=5, knife=True, checkpoint_count=7, bomb_cluster=True, health=80),
 ]
 
 
-def boundary_walls():
+def wall_rect(x, y, w, h):
+    return {"top_left": (int(x), int(y)), "bottom_right": (int(x + w), int(y + h))}
+
+
+def outer_walls(cols, rows):
+    width, height = cols * CELL_W, rows * CELL_H
     return [
-        {"top_left": (0, 0), "bottom_right": (CELL_W, BORDER)},
-        {"top_left": (0, CELL_H - BORDER), "bottom_right": (CELL_W, CELL_H)},
-        {"top_left": (0, 0), "bottom_right": (BORDER, CELL_H)},
-        {"top_left": (CELL_W - BORDER, 0), "bottom_right": (CELL_W, CELL_H)},
+        wall_rect(0, 0, width, BORDER), wall_rect(0, height - BORDER, width, BORDER),
+        wall_rect(0, 0, BORDER, height), wall_rect(width - BORDER, 0, BORDER, height),
     ]
 
 
-def interior_walls(index: int):
-    # Every layout leaves broad openings and keeps the ordered objective route clear.
-    layouts = [
-        [],
-        [(390, 170, 105, 190), (700, 375, 110, 180)],
-        [(360, 15, 35, 390), (650, 315, 35, 390), (950, 15, 35, 390)],
-        [(410, 185, 95, 95), (760, 435, 95, 95), (930, 185, 95, 95)],
-        [(350, 200, 150, 45), (590, 360, 150, 45), (850, 200, 150, 45)],
-        [(440, 15, 55, 245), (440, 455, 55, 250), (780, 15, 55, 250), (780, 455, 55, 250)],
-        [(350, 185, 45, 350), (600, 15, 45, 300), (600, 420, 45, 285), (895, 185, 45, 350)],
-        [(370, 125, 80, 80), (540, 275, 80, 80), (710, 425, 80, 80), (900, 170, 80, 80)],
-    ]
-    boxes = layouts[index % len(layouts)]
-    walls = boundary_walls()
-    walls.extend({"top_left": (x, y), "bottom_right": (x + w, y + h)} for x, y, w, h in boxes)
+def divider_walls(cols, rows, style):
+    """Make connected routes with style-specific patterns across each cell seam."""
+    walls = []
+    width, height = cols * CELL_W, rows * CELL_H
+    if style in ("open", "arena", "pillars", "crossfire", "final"):
+        return walls
+    gap = 120 if style == "choke" else (290 if style == "rooms" else 230)
+    # Each cell seam has one door per adjacent cell pair. Matching horizontal
+    # and vertical doors keep the whole maze connected without making it open.
+    for cx in range(1, cols):
+        x = cx * CELL_W
+        for cy in range(rows):
+            top, bottom = cy * CELL_H + BORDER, (cy + 1) * CELL_H - BORDER
+            frac = (0.28 if (cx + cy) % 2 == 0 else 0.72) if style in ("zigzag", "maze", "choke") else 0.5
+            center = int(cy * CELL_H + CELL_H * frac)
+            lo, hi = center - gap // 2, center + gap // 2
+            walls.extend((wall_rect(x - 20, top, 40, lo - top), wall_rect(x - 20, hi, 40, bottom - hi)))
+    for cy in range(1, rows):
+        y = cy * CELL_H
+        for cx in range(cols):
+            left, right = cx * CELL_W + BORDER, (cx + 1) * CELL_W - BORDER
+            frac = (0.72 if (cx + cy) % 2 == 0 else 0.28) if style in ("zigzag", "maze", "choke") else 0.5
+            center = int(cx * CELL_W + CELL_W * frac)
+            lo, hi = center - gap // 2, center + gap // 2
+            walls.extend((wall_rect(left, y - 20, lo - left, 40), wall_rect(hi, y - 20, right - hi, 40)))
     return walls
 
 
-def missions(index: int):
-    # Intro objective is always within a short, safe walk of the spawn.
-    routes = [
-        [(260, 230), (640, 540), (1080, 470)],
-        [(280, 525), (690, 210), (1085, 525)],
-        [(280, 220), (650, 520), (1080, 225)],
-        [(270, 520), (640, 205), (1080, 500)],
-    ]
-    walls = [pygame.Rect(w["top_left"], (w["bottom_right"][0] - w["top_left"][0], w["bottom_right"][1] - w["top_left"][1])) for w in interior_walls(index)]
-    candidates = [(x, y) for y in (180, 230, 300, 390, 470, 540) for x in (240, 300, 400, 520, 650, 740, 860, 980, 1080)]
+def extra_walls(cols, rows, style):
+    width, height = cols * CELL_W, rows * CELL_H
+    walls = []
+    # Hand-shaped obstacles emphasize different movement decisions.
+    if style == "zigzag":
+        for i, x in enumerate((int(width * .38), int(width * .68))):
+            y = 35 if i == 0 else height - 220
+            walls.append(wall_rect(x, y, 240, 170))
+    elif style in ("lanes", "crossfire"):
+        for row in range(rows):
+            y = row * CELL_H + (130 if row % 2 == 0 else 410)
+            for x in (int(width * .32), int(width * .62)):
+                walls.append(wall_rect(x, y, 210, 45))
+    elif style in ("switchback", "maze"):
+        for col in range(cols):
+            x = col * CELL_W + (350 if col % 2 == 0 else 820)
+            walls.append(wall_rect(x, 100, 55, int(height * .38)))
+            walls.append(wall_rect(x, int(height * .60), 55, int(height * .34)))
+    elif style == "rooms":
+        for col in range(cols):
+            for row in range(rows):
+                x, y = col * CELL_W + 760, row * CELL_H + 390
+                walls.append(wall_rect(x, y, 230, 48))
+    elif style == "pillars":
+        for col in range(cols):
+            for row in range(rows):
+                base_x, base_y = col * CELL_W, row * CELL_H
+                walls.extend((wall_rect(base_x + 360, base_y + 210, 110, 110), wall_rect(base_x + 850, base_y + 420, 110, 110)))
+    elif style == "ambush":
+        for col in range(cols):
+            for row in range(rows):
+                base_x, base_y = col * CELL_W, row * CELL_H
+                walls.extend((wall_rect(base_x + 390, base_y + 175, 48, 300), wall_rect(base_x + 850, base_y + 280, 48, 300)))
+    elif style == "final":
+        for col in range(cols):
+            for row in range(rows):
+                base_x, base_y = col * CELL_W, row * CELL_H
+                walls.extend((wall_rect(base_x + 250, base_y + 230, 260, 45), wall_rect(base_x + 720, base_y + 420, 300, 45)))
+    elif style == "labyrinth":
+        for col in range(cols):
+            for row in range(rows):
+                x, y = col * CELL_W, row * CELL_H
+                walls.extend((
+                    wall_rect(x + 420, y + 65, 42, 230), wall_rect(x + 420, y + 405, 42, 245),
+                    wall_rect(x + 820, y + 150, 42, 250), wall_rect(x + 820, y + 510, 42, 150),
+                    wall_rect(x + 462, y + 290, 250, 42), wall_rect(x + 600, y + 500, 220, 42),
+                ))
+    elif style == "spiral":
+        for col in range(cols):
+            for row in range(rows):
+                x, y = col * CELL_W, row * CELL_H
+                if (col + row) % 2 == 0:
+                    walls.extend((wall_rect(x+210,y+125,790,42), wall_rect(x+958,y+167,42,350),
+                                  wall_rect(x+350,y+475,608,42), wall_rect(x+350,y+300,42,175)))
+                else:
+                    walls.extend((wall_rect(x+280,y+555,790,42), wall_rect(x+280,y+205,42,350),
+                                  wall_rect(x+322,y+205,608,42), wall_rect(x+888,y+247,42,180)))
+    elif style == "deadends":
+        for col in range(cols):
+            for row in range(rows):
+                x, y = col * CELL_W, row * CELL_H
+                walls.extend((wall_rect(x+260,y+110,46,340), wall_rect(x+306,y+110,340,46),
+                              wall_rect(x+646,y+156,46,245), wall_rect(x+692,y+355,300,46),
+                              wall_rect(x+946,y+401,46,220)))
+    elif style == "crossing":
+        for col in range(cols):
+            for row in range(rows):
+                x,y=col*CELL_W,row*CELL_H
+                walls.extend((wall_rect(x+370,y+110,250,42),wall_rect(x+660,y+300,250,42),
+                              wall_rect(x+370,y+500,250,42),wall_rect(x+620,y+155,42,145),
+                              wall_rect(x+910,y+340,42,160)))
+    return walls
+
+
+def level_walls(spec):
+    cols, rows = spec["size"]
+    walls = outer_walls(cols, rows)
+    walls += divider_walls(cols, rows, spec["style"])
+    walls += extra_walls(cols, rows, spec["style"])
+    return walls
+
+
+def wall_rects(walls):
+    return [pygame.Rect(w["top_left"], (w["bottom_right"][0]-w["top_left"][0], w["bottom_right"][1]-w["top_left"][1])) for w in walls]
+
+
+def point_clear(point, rects, padding=0):
+    return not any(r.inflate(padding * 2, padding * 2).collidepoint(point) for r in rects)
+
+
+def missions(spec, rects):
+    cols, rows = spec["size"]
+    # A serpentine cell route stretches large levels across the whole map.
+    cells = [(cx, cy) for cy in range(rows) for cx in (range(cols) if cy % 2 == 0 else range(cols-1, -1, -1))]
+    if spec["purpose"] == "tutorial":
+        preferred = [(105, 360), (CELL_W*.55, CELL_H*.72), (CELL_W*.82, CELL_H*.38)]
+    elif cols * rows == 1:
+        preferred = [(CELL_W*.22,CELL_H*.72),(CELL_W*.55,CELL_H*.25),(CELL_W*.82,CELL_H*.7)]
+    else:
+        preferred = []
+        for i in range(spec["checkpoint_count"]):
+            cx, cy = cells[i % len(cells)]
+            lap = i // len(cells)
+            xoff = .30 if (i + lap) % 2 == 0 else .70
+            yoff = .30 if (i + lap // 2) % 2 == 0 else .70
+            preferred.append((cx*CELL_W + CELL_W*xoff, cy*CELL_H + CELL_H*yoff))
+    candidates = [(x, y) for y in range(80, rows*CELL_H-40, 80) for x in range(80, cols*CELL_W-40, 80)]
     result = []
-    for preferred in routes[index % len(routes)]:
-        point = next((p for p in sorted(candidates, key=lambda p: (p[0]-preferred[0])**2+(p[1]-preferred[1])**2)
-                      if p not in result and not any(r.inflate(60, 60).collidepoint(p) for r in walls)), None)
+    for want in preferred[:spec["checkpoint_count"]]:
+        options = sorted(set(candidates + [(int(want[0]), int(want[1]))]), key=lambda p: (p[0]-want[0])**2 + (p[1]-want[1])**2)
+        point = next((p for p in options if p not in result and point_clear(p, rects, 40)), None)
         if point is None:
-            raise ValueError(f"No clear mission point for campaign map {index}")
+            raise ValueError(f"No clear checkpoint for {spec['name']} near {want}")
         result.append(point)
     return result
 
 
-def nodes_and_enemies(index: int, count: int):
-    # All four nodes are mutually reachable in open space; placements are spaced
-    # away from the spawn and arranged into visible patrol pairs.
-    nodes = [(540, 150), (1050, 150), (540, 570), (1050, 570)]
-    enemies = []
-    walls = [pygame.Rect(w["top_left"], (w["bottom_right"][0] - w["top_left"][0], w["bottom_right"][1] - w["top_left"][1])) for w in interior_walls(index)]
-    candidates = [(x, y) for y in (110, 270, 365, 455, 585) for x in (220, 310, 500, 700, 840, 1010, 1130)]
-    occupied = [(105, 330)] + missions(index)
-    for e in range(count):
-        viable = [p for p in candidates if p not in occupied and not any(r.inflate(50, 50).colliderect(pygame.Rect(p, (50, 50))) for r in walls)]
-        if not viable:
-            raise ValueError(f"No clear enemy placement for campaign map {index}")
-        x, y = min(viable, key=lambda p: ((p[0] + 25 - (800 + e*40))**2 + (p[1] + 25 - (350 + (e%2)*120))**2, (p[0] + index*37) % 997))
-        occupied.append((x, y))
-        kind = "weak" if (e + index) % 3 == 0 else "basic"
-        enemies.append((x, y, kind))
-    # Tutorial 1 has no enemies but still contains a safe, connected patrol graph.
-    return nodes, enemies
+def width_of(spec): return spec["size"][0] * CELL_W
+def height_of(spec): return spec["size"][1] * CELL_H
 
 
-def create_map_data(index: int, enemy_count: int, bomb_positions):
-    walls = interior_walls(index)
-    nodes, enemies = nodes_and_enemies(index, enemy_count)
-    # Reproduce ultimate_map_maker.createfile's wall grid and line-of-sight links.
-    grid_walls = {(0, 0): walls}
-    path_lines = []
-    for source in nodes:
-        linked = []
-        for target_i, target in enumerate(nodes):
-            if target == source:
-                continue
-            if not any(pygame.Rect(w["top_left"], (w["bottom_right"][0] - w["top_left"][0], w["bottom_right"][1] - w["top_left"][1])).clipline(source, target) for w in walls):
-                linked.append(target_i)
-        path_lines.append(tuple(linked))
+def actor_positions(spec, rects, targets):
+    cols, rows = spec["size"]
+    player = (80, CELL_H // 2 - 25)
+    enemies, occupied = [], [player, *targets]
+    width, height = width_of(spec), height_of(spec)
+    if spec["bomb_cluster"]:
+        cluster = (width * .72, height * .52)
+        for idx in range(spec["ghosts"]):
+            angle = idx * 2.39996
+            radius = 65 + (idx % 4) * 42
+            desired = (int(cluster[0] + __import__('math').cos(angle)*radius), int(cluster[1] + __import__('math').sin(angle)*radius))
+            fallback = [(int(x),int(y)) for y in range(int(cluster[1]-250),int(cluster[1]+251),50)
+                        for x in range(int(cluster[0]-250),int(cluster[0]+251),50)]
+            candidates = [desired] + sorted(fallback,key=lambda p:(p[0]-desired[0])**2+(p[1]-desired[1])**2)
+            p = next((p for p in candidates if 40<=p[0]<width-40 and 40<=p[1]<height-40
+                      and point_clear((p[0]+25,p[1]+25),rects,35)
+                      and all((p[0]-q[0])**2+(p[1]-q[1])**2>=55**2 for q in enemies)
+                      and all((p[0]+25-t[0])**2+(p[1]+25-t[1])**2>=110**2 for t in targets)),None)
+            if p is None: raise ValueError(f"Cannot fit bomb target cluster for {spec['name']}")
+            enemies.append((p[0],p[1],"basic")); occupied.append(p)
+    # Patrols and wall-crossing chasers are deliberately placed in different
+    # cells and corridors. The chase packs gather around chokepoints.
+    for kind, count in (("weak", spec["weak"]), ("basic", spec["ghosts"] if not spec["bomb_cluster"] else 0)):
+        for idx in range(count):
+            if kind == "basic" and spec["style"] in ("ambush", "choke", "maze", "rooms"):
+                col = min(cols-1, max(0, (idx % max(cols,1))))
+                row = min(rows-1, idx % rows)
+                want = (col*CELL_W + CELL_W*.72, row*CELL_H + CELL_H*.52)
+            else:
+                col = (idx * 2 + (1 if kind == "basic" else 0)) % cols
+                row = (idx + (0 if kind == "weak" else 1)) % rows
+                want = (col*CELL_W + (CELL_W*.32 if idx%2==0 else CELL_W*.72), row*CELL_H + (CELL_H*.38 if idx%2==0 else CELL_H*.68))
+            choices = [(int(x),int(y)) for y in range(max(60,int(want[1])-220),min(height-100,int(want[1])+221),50)
+                       for x in range(max(100,int(want[0])-220),min(width-100,int(want[0])+221),50)]
+            p = next((p for p in sorted(choices,key=lambda p:(p[0]-want[0])**2+(p[1]-want[1])**2)
+                      if p not in occupied and point_clear((p[0]+25,p[1]+25),rects,40)
+                      and (p[0]-player[0])**2+(p[1]-player[1])**2 > 400**2), None)
+            if p is None:
+                raise ValueError(f"No safe {kind} spawn for {spec['name']} at {want}")
+            enemies.append((p[0],p[1],kind)); occupied.append(p)
+    return player, enemies
+
+
+def patrol_graph(enemies, rects, spec):
+    nodes=[]
+    if not enemies:
+        enemies=[(int(width_of(spec)*.65),int(height_of(spec)*.5),"weak")]
+    for ex,ey,_kind in enemies:
+        center=(ex+25,ey+25)
+        candidates=[((ex-170,ey+25),(ex+170,ey+25)),((ex+25,ey-170),(ex+25,ey+170)),((ex-140,ey-140),(ex+140,ey+140))]
+        pair=next((pair for pair in candidates if all(20<=p[0]<width_of(spec)-20 and 20<=p[1]<height_of(spec)-20 and point_clear(p,rects,18) for p in pair)
+                  and not any(r.clipline(pair[0],pair[1]) for r in rects)),None)
+        if pair is None:
+            # Keep candidate nodes local and connected even in tight passages.
+            pair=((max(40,ex-100),ey+25),(min(width_of(spec)-40,ex+100),ey+25))
+        for p in pair:
+            if p not in nodes: nodes.append(p)
+    lines=[]
+    for i,p in enumerate(nodes):
+        visible=[j for j,q in enumerate(nodes) if j!=i
+                 and pygame.Vector2(p).distance_to(q) >= MIN_PATROL_NODE_DISTANCE
+                 and not any(r.clipline(p,q) for r in rects)]
+        lines.append(tuple(visible))
+    # Guarantee every patrol endpoint has a visible partner; nodes were added in pairs.
+    for i,row in enumerate(lines):
+        if not row:
+            partner=i-1 if i%2 else i+1
+            if (0<=partner<len(nodes)
+                    and pygame.Vector2(nodes[i]).distance_to(nodes[partner]) >= MIN_PATROL_NODE_DISTANCE):
+                lines[i]=(partner,)
+                existing=list(lines[partner]); existing.append(i); lines[partner]=tuple(sorted(set(existing)))
+    return nodes,lines
+
+
+def grid_wall_map(walls, cols, rows):
+    result={}
+    rects=wall_rects(walls)
+    for gx in range(cols):
+        for gy in range(rows):
+            box=pygame.Rect(gx*CELL_W-150,gy*CELL_H-150,CELL_W+300,CELL_H+300)
+            result[(gx,gy)]=[wall for wall,rect in zip(walls,rects) if box.colliderect(rect)]
+    return result
+
+
+def map_data(spec):
+    cols,rows=spec["size"]
+    walls=level_walls(spec); rects=wall_rects(walls)
+    targets=missions(spec,rects)
+    player,enemies=actor_positions(spec,rects,targets)
+    nodes,lines=patrol_graph(enemies,rects,spec)
+    # Place bomb caches on the approach to the most dangerous area.
+    bombs=[]
+    for i in range(spec["bombs"]):
+        want=(width_of(spec)*(.3+.08*i),height_of(spec)*(.78 if i%2==0 else .25))
+        candidates=[(x,y) for y in range(80,int(height_of(spec))-40,80) for x in range(80,int(width_of(spec))-40,80)]
+        p=next((p for p in sorted(candidates,key=lambda p:(p[0]-want[0])**2+(p[1]-want[1])**2) if point_clear(p,rects,30) and p not in bombs),None)
+        if p is None: raise ValueError(f"No bomb cache location for {spec['name']}")
+        bombs.append(p)
     return {
-        "walls": grid_walls,
-        "path_nodes": nodes,
-        "path_lines": path_lines,
-        "mission_pointers": missions(index),
-        "enemy_data": enemies,
-        "player_data": (105, 330),
-        "bomb_positions": list(bomb_positions),
+        "walls":grid_wall_map(walls,cols,rows), "path_nodes":nodes, "path_lines":lines,
+        "mission_pointers":targets, "enemy_data":enemies, "player_data":player,
+        "bomb_positions":bombs,
     }
 
 
-def generate_mission_module(name, messages, unlock_checkpoint, music_file):
-    lines = ["import pygame", "from Levels import commonfunctions as CFS", "", f"## authored mission script for {name}", ""]
-    lines.append(f"bgm = CFS.sound_loader('./sounds/music/{music_file}')")
-    for i, message in enumerate(messages):
-        lines.extend(["", f"msg{i} = CFS.create_messages(", "    (" + repr(message) + ",)\n)"])
-        lines.extend([f"def func{i}(gameObj, levelObj=None):"])
-        if i == 0 and unlock_checkpoint == 0:
-            lines.append("    levelObj.player.knife_equiped = True")
-        if i == 0 and name in ("T01_FirstSteps", "T02_ReadThePatrol"):
-            lines.append("    levelObj.player.knife_equiped = False")
-        if i == 1:
-            lines.append("    gameObj.music_channel.play(bgm, -1)")
-        if i == len(messages) - 1:
-            lines.append("    gameObj.music_channel.stop()")
-        lines.extend(["    CFS.play_sound(gameObj.mission_pass_channel)", f"    return CFS.render_messages, (gameObj.screen, msg{i}), gameObj.fps * 6", ""])
-    return "\n".join(lines) + "\n"
+def mission_module(spec,index):
+    track=("bass.wav","bass1.wav","bassanddrum.wav","drums1.wav","all.wav")[index%5]
+    lines=["from Levels import commonfunctions as CFS","",f"## checkpoint events for {spec['name']}",
+           f"starting_health = {spec['health']}",f"bgm = CFS.sound_loader('./sounds/music/{track}')",""]
+    messages=list(spec["messages"])
+    continuation=("Route updated. Take the next opening.","Another sector cleared. Keep your pace.","The final stretch is ahead. Stay alert.")
+    while len(messages)<spec["checkpoint_count"]:
+        messages.append(continuation[(len(messages)-len(spec["messages"]))%len(continuation)])
+    for i,message in enumerate(messages[:spec["checkpoint_count"]]):
+        message_lines = (message,) if isinstance(message, str) else tuple(message)
+        lines += [f"msg{i} = CFS.create_messages({message_lines!r})",f"def func{i}(gameObj, levelObj=None):"]
+        if i==0 and not spec["knife"]: lines.append("    levelObj.player.knife_equiped = False")
+        if i==0 and spec["knife"]: lines.append("    levelObj.player.knife_equiped = True")
+        if i==1: lines.append("    gameObj.music_channel.play(bgm, -1)")
+        if i==spec["checkpoint_count"]-1: lines.append("    gameObj.music_channel.stop()")
+        lines += ["    CFS.play_sound(gameObj.mission_pass_channel)",f"    return CFS.render_messages, (gameObj.screen, msg{i}), gameObj.fps * 9",""]
+    return "\n".join(lines)
 
 
-def make_bg_tile(name, walls, index):
-    texture_name = ("dark.png", "darkest.png", "mid.png", "light.png")[index % 4]
-    bg = pygame.image.load(str(MAPS / texture_name)).convert()
-    palette = [(58, 69, 78), (63, 58, 72), (54, 75, 70), (78, 66, 57)]
-    color = palette[index % len(palette)]
-    for wall in walls[(0, 0)]:
-        x, y = wall["top_left"]
-        w = wall["bottom_right"][0] - x
-        h = wall["bottom_right"][1] - y
-        pygame.draw.rect(bg, color, (x, y, w, h))
-    out = LEVELS_DIR / name / f"{name}-bgpics" / f"{name}-0-0.png"
-    out.parent.mkdir(parents=True, exist_ok=True)
-    pygame.image.save(bg, str(out))
+def export_backgrounds(spec,data,index):
+    name=spec["name"]
+    texture=("dark.png","darkest.png","mid.png","light.png")[index%4]
+    wall_color=((48,64,76),(55,53,68),(48,72,64),(78,62,52))[index%4]
+    base=pygame.image.load(str(MAPS/texture)).convert()
+    cols,rows=spec["size"]
+    for (gx,gy),cell_walls in data["walls"].items():
+        tile=base.copy()
+        for wall in cell_walls:
+            x,y=wall["top_left"]; right,bottom=wall["bottom_right"]
+            clipped=pygame.Rect(x-gx*CELL_W,y-gy*CELL_H,right-x,bottom-y).clip(pygame.Rect(0,0,CELL_W,CELL_H))
+            if clipped.width and clipped.height: pygame.draw.rect(tile,wall_color,clipped)
+        out=LEVELS/name/f"{name}-bgpics"/f"{name}-{gx}-{gy}.png"
+        out.parent.mkdir(parents=True,exist_ok=True)
+        pygame.image.save(tile,str(out))
 
 
-def write_level(name, data, messages, unlock_checkpoint, index):
-    # Source package mirrors the editor's generated runtime map data exactly.
-    source_map = MAPS / f"{name}.map"
-    with source_map.open("wb") as f:
-        pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
-    with (MAPS / f"{name}.mapsupport").open("wb") as f:
-        pickle.dump("none.png", f)
-        pickle.dump(1, f)
-        pickle.dump(1, f)
-    dest = LEVELS_DIR / name
-    dest.mkdir(parents=True, exist_ok=True)
-    with (dest / f"{name}.map").open("wb") as f:
-        pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
-    make_bg_tile(name, data["walls"], index)
-    music = ("bass.wav", "bass1.wav", "bassanddrum.wav", "drums1.wav")[index % 4]
-    (LEVELS_DIR / f"{name}.py").write_text(generate_mission_module(name, messages, unlock_checkpoint, music), encoding="utf-8")
+def write_level(spec, data, index, *, write_source=True):
+    name=spec["name"]
+    if write_source:
+        with (MAPS/f"{name}.map").open("wb") as f: pickle.dump(data,f,pickle.HIGHEST_PROTOCOL)
+        with (MAPS/f"{name}.mapsupport").open("wb") as f:
+            pickle.dump("none.png",f); pickle.dump(spec["size"][0],f); pickle.dump(spec["size"][1],f)
+    dest=LEVELS/name; dest.mkdir(parents=True,exist_ok=True)
+    with (dest/f"{name}.map").open("wb") as f: pickle.dump(data,f,pickle.HIGHEST_PROTOCOL)
+    export_backgrounds(spec,data,index)
+    (LEVELS/f"{name}.py").write_text(mission_module(spec,index),encoding="utf-8")
 
 
 def main():
-    pygame.init()
-    pygame.display.set_mode((CELL_W, CELL_H))
-    names = []
-    for index, (name, _focus, messages, enemy_count, bombs, unlock) in enumerate(CAMPAIGN):
-        data = create_map_data(index, enemy_count, bombs)
-        write_level(name, data, messages, unlock, index)
-        names.append(name)
-    registry = "# Tutorial levels first, followed by 20 main campaign challenges.\n##\n" + "\n".join(names) + "\n"
-    (LEVELS_DIR / "Level-Names.txt").write_text(registry, encoding="utf-8")
-    (LEVELS_DIR / "__init__.py").write_text("__all__ = " + repr(names) + "\n", encoding="utf-8")
+    pygame.init(); pygame.display.set_mode((CELL_W,CELL_H))
+    names=[]
+    for index,spec in enumerate(CAMPAIGN):
+        data=map_data(spec); write_level(spec,data,index); names.append(spec["name"])
+    (LEVELS/"Level-Names.txt").write_text("# Tutorials first, then the main campaign.\n##\n"+"\n".join(names)+"\n",encoding="utf-8")
+    (LEVELS/"__init__.py").write_text("__all__ = "+repr(names)+"\n",encoding="utf-8")
     pygame.quit()
-    print(f"Generated {len(names)} levels: 4 tutorials and 20 main levels.")
+    print(f"Generated {len(names)} levels: 4 tutorials and 20 main challenges.")
 
 
-if __name__ == "__main__":
-    main()
+if __name__=="__main__": main()

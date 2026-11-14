@@ -15,6 +15,7 @@ bomb = pygame.transform.scale(pygame.image.load('../images/bomb1.png'), (20, 20)
 
 speed = 20 #camera speed for W-A-S-D movement (pixels per frame)
 min_pixel_accuracy = 80 #for the snapy motion
+min_path_node_distance = 72 # prevent patrols from flipping between overlapping nodes
 t = 15
 
 
@@ -249,7 +250,11 @@ def user_input():
                 else:
                     top_left = None
             elif event.key == pygame.K_LALT:
-                path_nodes.append(tuple(marker_pos))
+                candidate = pygame.Vector2(marker_pos)
+                if all(candidate.distance_to(node) >= min_path_node_distance for node in path_nodes):
+                    path_nodes.append(tuple(marker_pos))
+                else:
+                    print(f'Path node ignored: keep nodes at least {min_path_node_distance}px apart.')
             elif event.key == pygame.K_1:
                 deletecheck = True
             elif event.key == pygame.K_RETURN and not player_data:
