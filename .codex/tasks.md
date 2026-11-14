@@ -249,7 +249,9 @@ Add temporary hit feedback for knife attacks, bomb kills, and player damage.
 
 ### Objective
 
-Create one or more new, polished playable levels using the existing `maps/ultimate_map_maker.py` workflow. Preserve the current map schema and generated package structure so the runtime can load each level through the normal level selector.
+Create one or more new, polished playable levels using either the existing `maps/ultimate_map_maker.py` workflow, or create your own workflow suitable for ai agent `maps/ai_agent_map_maker.py`. Preserve the current map schema and generated package structure so the runtime can load each level through the normal level selector.
+
+Create a complete set of new levels starting from tutorials to main challenges. The total number of non tutorial levels must be 20 - 30. Do not delete my old levels, just edit the `Levels/Level-Names.txt`, to exclude / include any particular existing level. The order of levels in the file denotes the order of actual levels in the game. Change the level specific python file `Levels/<level-name>.py` in order to have different behaviours / text / music etc. when checkpoints are hit.
 
 ### Required artifacts
 
