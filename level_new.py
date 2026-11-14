@@ -1,6 +1,6 @@
 from Levels import *
 
-import pickle, player_new, random, game, enemy_new, pygame
+import pickle, player_new, random, game, enemy_new, pygame, effects
 
 
 def rotate_img(img : pygame.Surface, angle : int, x1 : int, y1 : int) -> tuple[pygame.Surface, tuple[int,int]]:
@@ -14,6 +14,8 @@ def rotate_img(img : pygame.Surface, angle : int, x1 : int, y1 : int) -> tuple[p
 class Level(object):
     def __init__(self, gameObj : game.Game, level_name : str):
         self.gameObj = gameObj
+        self.effects = effects.Effects(gameObj.screen_size)
+        self._last_player_health = None
         with open(f'Levels/{level_name}/{level_name}.map', 'rb') as f:
             map_data = pickle.load(f)
         self.walls = map_data['walls']
@@ -23,6 +25,10 @@ class Level(object):
         self.trigger_event = Trigger_event(gameObj, self, level_name, self.mission_sequence)
         self.bg_pics = {}
         self.arrow = pygame.transform.smoothscale(pygame.image.load('images/arrow_blue.png'), (80,50))
+        self.slash_frames = [
+            pygame.image.load(f'images/slices/slice{i}.png').convert_alpha()
+            for i in range(9)
+        ]
         for i in self.walls:
             self.bg_pics[i] = pygame.image.load(f'Levels/{level_name}/{level_name}-bgpics/{level_name}-{i[0]}-{i[1]}.png').convert()
         for i in self.walls:
@@ -35,6 +41,8 @@ class Level(object):
                 wall = pygame.Rect(x, y, w, h)
                 wl[j] = wall
         self.player = player_new.Player(self.gameObj, map_data['player_data'][0], map_data['player_data'][1] ,level_name)
+        self.player.set_slash_frames(self.slash_frames)
+        self._last_player_health = self.player.health
         self.player_grid = (1, 0)
         self.cam_x = self.player.centerx - self.gameObj.screen_size[0]//2
         self.cam_y = self.player.centery - self.gameObj.screen_size[1]//2
@@ -69,6 +77,8 @@ class Level(object):
     
     
     def update_world(self):
+        self.effects.update()
+        self.player.update_slash_animation()
         if self.player.health < 0:
             self.gameObj.isplaying = False
             self.gameObj.menumode = 'gameover'
@@ -98,7 +108,13 @@ class Level(object):
             enemy.position_update()
 
         if self.gameObj.INPUTS['knife']:
-            self.player.knife_attack(self.enemies)
+            hit_targets = self.player.knife_attack(self.enemies) or []
+            for target in hit_targets:
+                self.effects.add_knife_hit(target.center)
+
+        if self._last_player_health is not None and self.player.health < self._last_player_health:
+            self.effects.player_hurt()
+        self._last_player_health = self.player.health
 
         self.trigger_event.check_trigger_event()
         
@@ -128,6 +144,8 @@ class Level(object):
                 pic = self.bg_pics.get((gx, gy))
                 if pic != None:
                     self.gameObj.screen.blit(pic, (gx*1280 - cam_x, gy*720 - cam_y))
+
+        self.effects.render_ground(self.gameObj.screen, cam_x, cam_y)
         
         
         if self.trigger_event.num_frames > 0:
@@ -138,6 +156,8 @@ class Level(object):
             enemy.draw_entity(cam_x, cam_y)
         
         self.player.draw_entity(cam_x, cam_y)
+        self.player.draw_slash_animation(cam_x, cam_y)
+        self.effects.render(self.gameObj.screen, cam_x, cam_y)
 
         self.bombs.render_bombs(cam_x, cam_y)
 
@@ -155,6 +175,7 @@ class Level(object):
             self.gameObj.screen.blit(self.ui_bomb_pic, (1150, 40))
             self.gameObj.screen.blit(self.font.render(f'x   {self.player.bomb_equiped}', 1, self.gameObj.color['seaBlue']), (1200, 40))
             break
+        self.effects.render_hurt_overlay(self.gameObj.screen)
 
 
 
@@ -237,12 +258,20 @@ class Bomb(object):
             self.levelObj.player.bomb_equiped -= 1
     
     def cause_explosion(self, others : list[enemy_new.Enemy_Basic]):
+        bomb_sources = list(self.planted)
         for bomb in self.planted:
             self.exploded.append([0, bomb])
-            for en in bomb.collidelistall(others):
-                others[en].health -= 50
             self.blast_sfx.play()
             self.levelObj.screen_shake_val = 40
+        for target in others:
+            sources = [bomb for bomb in bomb_sources if bomb.colliderect(target)]
+            if not sources:
+                continue
+            was_alive = target.health >= 0
+            target.health -= 50 * len(sources)
+            if target is not self.levelObj.player and was_alive and target.health < 0:
+                source = min(sources, key=lambda b: (pygame.Vector2(target.center).distance_squared_to(b.center), bomb_sources.index(b)))
+                self.levelObj.effects.add_bomb_kill(target.center, source.center)
         self.planted.clear()
         
     

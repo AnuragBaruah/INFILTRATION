@@ -25,7 +25,11 @@ def start_level_button(menu, n):
     menu.gameObj.isplaying = True
 
 def goto_levelselector(menu):
+    menu.gameObj.return_menu_mode = menu.gameObj.menumode
     menu.gameObj.menumode = 'levelselector'
+
+def back_from_levelselector(menu):
+    menu.gameObj.menumode = getattr(menu.gameObj, 'return_menu_mode', 'startup')
 
 def quit_button(menu):
     menu.gameObj.isrunning = False
@@ -70,6 +74,10 @@ class Menu_Button(object):
             return -1
         else:
             return 0
+
+    def set_focused(self, focused):
+        self.state = bool(focused)
+        self.img = self.img2 if self.state else self.img1
         
 
 class Locked_Button(Menu_Button):
@@ -111,13 +119,64 @@ class Main_Menu(object):
                                     Menu_Button('LEVEL SELECTOR', self.gameObj.color['dark'], self.gameObj.color['lightest'], 100, 300, goto_levelselector, (self,))
                                   ]
         self.keep_track = False
+        self.selected_index = next((i for i, b in enumerate(self.buttons) if not isinstance(b, Locked_Button)), 0)
+        self._controller_focus = False
+
+    def _move_selection(self, dx, dy):
+        if not self.buttons:
+            return
+        current = self.buttons[self.selected_index]
+        cx = (current.top_left_corner[0] + current.bottom_right_corner[0]) / 2
+        cy = (current.top_left_corner[1] + current.bottom_right_corner[1]) / 2
+        candidates = []
+        for i, button in enumerate(self.buttons):
+            if i == self.selected_index:
+                continue
+            bx = (button.top_left_corner[0] + button.bottom_right_corner[0]) / 2
+            by = (button.top_left_corner[1] + button.bottom_right_corner[1]) / 2
+            vx, vy = bx - cx, by - cy
+            primary = vx * dx + vy * dy
+            if primary <= 0:
+                continue
+            secondary = abs(vx * dy - vy * dx)
+            candidates.append((secondary / primary, vx * vx + vy * vy, i))
+        if candidates:
+            self.selected_index = min(candidates)[2]
 
 
     def update_menu(self):
         self.gameObj.screen.blit(self.bg, (0,0))
+        inputs = self.gameObj.INPUTS
+        controller = self.gameObj.controller_active
+        focused_input = controller or any(inputs[key] for key in (
+            'menu_up', 'menu_down', 'menu_left', 'menu_right', 'menu_confirm', 'menu_back'
+        ))
+        if focused_input:
+            if inputs['menu_up']: self._move_selection(0, -1)
+            elif inputs['menu_down']: self._move_selection(0, 1)
+            elif inputs['menu_left']: self._move_selection(-1, 0)
+            elif inputs['menu_right']: self._move_selection(1, 0)
+            for i, button in enumerate(self.buttons):
+                button.set_focused(i == self.selected_index)
+            self._controller_focus = True
+            if inputs['menu_confirm']:
+                button = self.buttons[self.selected_index]
+                self.gameObj.UI_channel.set_volume(0.02 if isinstance(button, Locked_Button) else 1)
+                self.gameObj.UI_channel.play(locked_click_sfx if isinstance(button, Locked_Button) else click_sfx)
+                if not isinstance(button, Locked_Button):
+                    button.command(*button.params)
+            if inputs['menu_back']:
+                if getattr(self, 'islevelselector', False):
+                    back_from_levelselector(self)
+                elif self.gameObj.menumode == 'pause':
+                    resume_game_button(self)
+        else:
+            if self._controller_focus:
+                self._controller_focus = False
+            self.gameObj.INPUTS['menu_back'] = False
         mt = 0
         for button in self.buttons:
-            req_sfx = button.update_button_state()
+            req_sfx = 0 if focused_input else button.update_button_state()
             if req_sfx == 1:
                 self.gameObj.UI_channel.set_volume(1)
                 self.gameObj.UI_channel.play(hover_sfx)
@@ -126,14 +185,14 @@ class Main_Menu(object):
                 self.gameObj.UI_channel.play(hover_sfx)
             mt += button.state
             self.gameObj.screen.blit(button.img, button.top_left_corner)
-            if button.state:
+            if button.state and not controller and not focused_input:
                 pygame.mouse.set_cursor(11)
                 if pygame.mouse.get_pressed()[0] and not self.keep_track:
                     self.gameObj.UI_channel.set_volume(1)
                     self.gameObj.UI_channel.play(click_sfx)
                     time.sleep(0.5)
                     button.command(*button.params)
-        if mt == 0:
+        if mt == 0 and not controller:
             self.keep_track = pygame.mouse.get_pressed()[0]
             pygame.mouse.set_visible(1)
             pygame.mouse.set_cursor(0)
@@ -231,6 +290,7 @@ class Level_Selector_Menu(Main_Menu):
         self.buttons.append(
             Menu_Button('EXIT GAME', self.gameObj.color['dark'], self.gameObj.color['lightest'], 40, 650, quit_button, (self,))
         )
+        self.selected_index = 0
         self.islevelselector = True
 
 

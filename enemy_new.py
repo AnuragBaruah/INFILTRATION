@@ -18,7 +18,9 @@ class Enemy_Basic(player_new.Player):
         self.path_nodes = data['path_nodes']
         self.path_lines = data['path_lines']
         self.reset_nodes()
-        self.img = pygame.transform.smoothscale(pygame.image.load('images/enemyb.png'), self.size) 
+        self.base_img = pygame.transform.smoothscale(pygame.image.load('images/enemyb.png'), self.size)
+        self.img = self.base_img
+        self.draw_facing_arrow = False
 
         self.sfx_list_knife = (pygame.mixer.Sound('sounds/SFX/enemyknife1.wav'), pygame.mixer.Sound('sounds/SFX/enemyknife2.wav'), pygame.mixer.Sound('sounds/SFX/enemyknifestab.wav'))
         for i in self.sfx_list_knife:
@@ -94,7 +96,8 @@ class Enemy_Weak(Enemy_Basic):
         self.path_lines = [(1,), (0,)]
         self.node_from = 0
         self.node_to = 1
-        self.img = pygame.transform.smoothscale(pygame.image.load('images/enemyw.png'), self.size)
+        self.base_img = pygame.transform.smoothscale(pygame.image.load('images/enemyw.png'), self.size)
+        self.img = self.base_img
     
     def velocity_update(self, other, walls):
         self.vector_to_player = other.position - self.position
