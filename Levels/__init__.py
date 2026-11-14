@@ -1,1 +1,1 @@
-__all__ = ['TheOpening', 'ZIGZAG', 'GetKnife', 'DETONATE', 'PRIORITIES', 'TheCorners', 'DirectionSense']
+__all__ = ['T01_FirstSteps', 'T02_ReadThePatrol', 'T03_CloseQuarters', 'T04_BombSafety', 'L01_QuietApproach', 'L02_CoverToCover', 'L03_TheLongHall', 'L04_Crossfire', 'L05_TheSupplyCache', 'L06_Switchback', 'L07_PatrolClock', 'L08_ThePillars', 'L09_CloseQuarters', 'L10_BlastRadius', 'L11_ThreeLanes', 'L12_TheGauntlet', 'L13_DeadDrop', 'L14_RedCorridor', 'L15_RelayRun', 'L16_TheBlindCorner', 'L17_SilentExit', 'L18_BreachPoint', 'L19_LastPatrol', 'L20_Extraction']
